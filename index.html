@@ -34,21 +34,29 @@
         }
 
         .container .title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #333;
+            font-size: 32px;
+            font-weight: 700;
+            color: #1565C0;
             margin-bottom: 25px;
             text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            border-bottom: 3px solid #1565C0;
+            padding-bottom: 10px;
         }
 
         .logo {
             text-align: center;
             margin-bottom: 30px;
+            position: relative;
         }
 
         .logo img {
             width: 150px;
             height: auto;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .form-content {
@@ -92,7 +100,7 @@
         .input-box input:focus,
         .input-box select:focus,
         .input-box textarea:focus {
-            border-color: #2196F3;
+            border-color: #1565C0;
         }
 
         .gender-details, .concession-details {
@@ -133,7 +141,7 @@
 
         .button input {
             padding: 12px 40px;
-            background: #2196F3;
+            background: #1565C0;
             color: #fff;
             border: none;
             border-radius: 4px;
@@ -141,10 +149,12 @@
             font-weight: 500;
             cursor: pointer;
             transition: background 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .button input:hover {
-            background: #1976D2;
+            background: #0D47A1;
         }
 
         @media (max-width: 768px) {
@@ -265,220 +275,150 @@
 
     <script>
         window.jsPDF = window.jspdf.jsPDF;
-        
-        // Get next registration number from Excel
-        async function getNextRegNo() {
-            const response = await fetch('fees.xlsx');
-            const data = await response.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(worksheet);
-            return 'PCC' + (rows.length + 1).toString().padStart(3, '0');
-        }
 
-        // Update Excel sheet
-        async function updateExcel(formData) {
-            const response = await fetch('fees.xlsx');
-            const data = await response.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            
-            const newRow = {
-                'Reg No': formData.regNo,
-                'Name': `${formData.firstName} ${formData.lastName}`,
-                'Class': formData.className,
-                'Total Fees': formData.totalFees,
-                'Fees Paid': formData.feesPaid,
-                'Remaining Fees': formData.remainingFees,
-                'Date': formData.date
-            };
-
-            const rows = XLSX.utils.sheet_to_json(worksheet);
-            rows.push(newRow);
-            
-            const newWorksheet = XLSX.utils.json_to_sheet(rows);
-            workbook.Sheets[workbook.SheetNames[0]] = newWorksheet;
-            
-            const newWorkbookData = XLSX.write(workbook, {bookType: 'xlsx', type: 'array'});
-            const blob = new Blob([newWorkbookData], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-            
-            const formDataFile = new FormData();
-            formDataFile.append('file', blob, 'fees.xlsx');
-            
-            await fetch('/update-excel', {
-                method: 'POST',
-                body: formDataFile
-            });
-        }
-        
         document.getElementById('registrationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const regNo = await getNextRegNo();
-            const currentDate = new Date().toLocaleDateString();
-            
-            // Get form values
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const fatherName = document.getElementById('fatherName').value;
-            const motherName = document.getElementById('motherName').value;
-            const fatherPhone = document.getElementById('fatherPhone').value;
-            const motherPhone = document.getElementById('motherPhone').value;
-            const whatsapp = document.getElementById('whatsapp').value;
-            const email = document.getElementById('email').value;
-            const phone = document.getElementById('fatherPhone').value;
-            const dob = document.getElementById('dob').value;
-            const className = document.getElementById('class').value;
-            const prevSchool = document.getElementById('prevSchool').value;
-            const feesPaid = document.getElementById('feesPaid').value;
-            const address = document.getElementById('address').value;
-            const concessionAmount = document.getElementById('concessionAmount').value || 0;
-            
-            // Set total fees based on class
-            let totalFees;
-            switch(className) {
-                case '8': totalFees = 12000; break;
-                case '9': totalFees = 15000; break;
-                case '10': totalFees = 18000; break;
-            }
-            
-            totalFees = totalFees - concessionAmount;
-            const remainingFees = totalFees - feesPaid;
-            const gender = document.querySelector('input[name="gender"]:checked').value;
+            try {
+                // Get form values
+                const firstName = document.getElementById('firstName').value;
+                const lastName = document.getElementById('lastName').value;
+                const fatherName = document.getElementById('fatherName').value;
+                const motherName = document.getElementById('motherName').value;
+                const fatherPhone = document.getElementById('fatherPhone').value;
+                const motherPhone = document.getElementById('motherPhone').value;
+                const whatsapp = document.getElementById('whatsapp').value;
+                const email = document.getElementById('email').value;
+                const dob = document.getElementById('dob').value;
+                const className = document.getElementById('class').value;
+                const prevSchool = document.getElementById('prevSchool').value;
+                const feesPaid = parseInt(document.getElementById('feesPaid').value);
+                const address = document.getElementById('address').value;
+                const concessionAmount = parseInt(document.getElementById('concessionAmount').value) || 0;
+                const gender = document.querySelector('input[name="gender"]:checked').value;
 
-            // Create PDF
-            const doc = new jsPDF();
-
-            // Add watermark
-            doc.setTextColor(200);
-            doc.setFontSize(60);
-            doc.text('PCC', 105, 150, {
-                align: 'center',
-                angle: 45
-            });
-            
-            // Function to create a copy (institute/parent)
-            function createCopy(startY, title) {
-                // Header with background
-                doc.setFillColor(230, 230, 230);
-                doc.rect(0, startY, 210, 15, 'F');
-                
-                // Institute name
-                doc.setFontSize(14);
-                doc.setTextColor(0);
-                doc.setFont('helvetica', 'bold');
-                doc.text('PADASHETTY COACHING INSTITUTE', 105, startY + 10, {align: 'center'});
-                
-                // Institute address
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.text('Sangameshwar Colony, Near SB Temple Road, Beside Nisty Hospital', 105, startY + 15, {align: 'center'});
-                
-                // Contact details
-                doc.text('Contact: 9945203603 / 8618075133', 105, startY + 20, {align: 'center'});
-                
-                // Copy title
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`${title} COPY`, 15, startY + 25);
-                
-                // Registration details
-                doc.setFontSize(9);
-                doc.text(`Registration No: ${regNo}`, 15, startY + 32);
-                doc.text(`Date: ${currentDate}`, 150, startY + 32);
-                
-                // Photo box
-                doc.rect(150, startY + 35, 30, 35);
-                doc.setFontSize(7);
-                doc.text("Passport Size", 152, startY + 50);
-                doc.text("Photo", 160, startY + 55);
-
-                // Student details
-                const detailsY = startY + 40;
-                doc.setFontSize(9);
-                
-                function addDetail(label, value, y) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(label, 15, y);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text(value, 60, y);
+                // Set total fees based on class
+                let totalFees;
+                switch(className) {
+                    case '8': totalFees = 12000; break;
+                    case '9': totalFees = 15000; break;
+                    case '10': totalFees = 18000; break;
+                    default: throw new Error('Invalid class selected');
                 }
+                
+                totalFees = totalFees - concessionAmount;
+                const remainingFees = totalFees - feesPaid;
 
-                addDetail('Student Name:', `${firstName} ${lastName}`, detailsY);
-                addDetail('Father Name:', fatherName, detailsY + 6);
-                addDetail('Mother Name:', motherName, detailsY + 12);
-                addDetail('Date of Birth:', dob, detailsY + 18);
-                addDetail('Gender:', gender, detailsY + 24);
-                addDetail('Father Phone:', fatherPhone, detailsY + 30);
-                addDetail('Mother Phone:', motherPhone, detailsY + 36);
-                addDetail('WhatsApp:', whatsapp, detailsY + 42);
+                // Create PDF
+                const doc = new jsPDF();
+                const regNo = 'PCC' + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                const currentDate = new Date().toLocaleDateString();
+
+                // Function to create a copy (institute/parent)
+                function createCopy(startY, title) {
+                    // Header with grey background
+                    doc.setFillColor(240, 240, 240);
+                    doc.rect(0, startY, 210, 25, 'F');
+                    
+                    // Institute name and details
+                    doc.setFontSize(16);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0, 51, 102);
+                    doc.text('PADASHETTY COACHING INSTITUTE', 105, startY + 8, {align: 'center'});
+                    
+                    doc.setFontSize(8);
+                    doc.setTextColor(68, 68, 68);
+                    doc.text('Sangmeshwar Colony, Beside Nisty Hospital, SB Temple Road', 105, startY + 15, {align: 'center'});
+                    doc.text('Contact: 9945203603 / 8618075133', 105, startY + 20, {align: 'center'});
+                    
+                    // Form title
+                    doc.setFontSize(12);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`ADMISSION FORM - ${title} COPY`, 105, startY + 32, {align: 'center'});
+                    
+                    // Photo box for institute copy
+                    if (title === 'INSTITUTE') {
+                        doc.rect(150, startY + 35, 30, 35);
+                        doc.setFontSize(8);
+                        doc.text('Affix Photo', 165, startY + 55, {align: 'center'});
+                    }
+                    
+                    // Registration details
+                    doc.setFontSize(10);
+                    doc.text(`Reg No: ${regNo}`, 15, startY + 40);
+                    doc.text(`Date: ${currentDate}`, 120, startY + 40);
+
+                    // Student details
+                    const detailsY = startY + 50;
+                    doc.setFontSize(9);
+                    
+                    function addDetail(label, value, y, x = 15) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(label, x, y);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(value, x + 35, y);
+                    }
+
+                    // First column
+                    addDetail('Name:', `${firstName} ${lastName}`, detailsY);
+                    addDetail('Father:', fatherName, detailsY + 7);
+                    addDetail('Mother:', motherName, detailsY + 14);
+                    addDetail('DOB:', dob, detailsY + 21);
+                    
+                    // Second column
+                    addDetail('Gender:', gender, detailsY, 100);
+                    addDetail('Ph (F):', fatherPhone, detailsY + 7, 100);
+                    addDetail('Ph (M):', motherPhone, detailsY + 14, 100);
+                    addDetail('WhatsApp:', whatsapp, detailsY + 21, 100);
+                    
+                    // Address
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Address:', 15, detailsY + 30);
+                    doc.setFont('helvetica', 'normal');
+                    const splitAddress = doc.splitTextToSize(address, 180);
+                    doc.text(splitAddress, 45, detailsY + 30);
+
+                    // Fee details
+                    const feeY = detailsY + 40;
+                    if (title === 'INSTITUTE') {
+                        doc.setFillColor(240, 240, 240);
+                        doc.rect(15, feeY - 3, 180, 10, 'F');
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`Total: ₹${totalFees}`, 20, feeY + 3);
+                        doc.text(`Paid: ₹${feesPaid}`, 80, feeY + 3);
+                        doc.text(`Balance: ₹${remainingFees}`, 140, feeY + 3);
+                    }
+                    
+                    // Signature section
+                    const signY = title === 'INSTITUTE' ? detailsY + 50 : detailsY + 45;
+                    doc.line(15, signY, 60, signY);
+                    doc.setFontSize(8);
+                    doc.text("Parent's Signature", 15, signY + 4);
+                    doc.line(130, signY, 180, signY);
+                    doc.text("Director's Signature", 130, signY + 4);
+                }
                 
-                // Address (with word wrap)
-                doc.setFont('helvetica', 'bold');
-                doc.text('Address:', 15, detailsY + 48);
-                doc.setFont('helvetica', 'normal');
-                const splitAddress = doc.splitTextToSize(address, 130);
-                doc.text(splitAddress, 60, detailsY + 48);
+                // Create both copies with reduced spacing
+                createCopy(10, 'INSTITUTE');
+                doc.line(0, 140, 210, 140);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text('✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -', 105, 138, {align: 'center'});
+                createCopy(145, 'PARENT');
                 
-                const afterAddressY = detailsY + 54;
-                addDetail('Class:', `${className}th Standard`, afterAddressY);
-                addDetail('Previous School:', prevSchool, afterAddressY + 6);
+                // Save PDF
+                doc.save(`PCC_Admission_${regNo}.pdf`);
+
+                // Open WhatsApp group link
+                const whatsappGroupLink = 'https://chat.whatsapp.com/KqLcgmzIClZFYVyzsmNCNZ';
+                window.open(`https://wa.me/${whatsapp}?text=Welcome to PCC! Please join our updates group using this link: ${whatsappGroupLink}`, '_blank');
                 
-                // Fee details with background
-                doc.setFillColor(245, 245, 245);
-                doc.rect(15, afterAddressY + 10, 180, 20, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.text('Fee Details:', 20, afterAddressY + 18);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`Total Fees: ₹${totalFees}`, 20, afterAddressY + 24);
-                doc.text(`Concession: ₹${concessionAmount}`, 80, afterAddressY + 24);
-                doc.text(`Paid: ₹${feesPaid}`, 140, afterAddressY + 24);
-                doc.text(`Remaining: ₹${remainingFees}`, 20, afterAddressY + 30);
+                alert('Registration successful! Your admission form has been downloaded.');
                 
-                // Signatures
-                const signY = afterAddressY + 38;
-                doc.line(15, signY, 65, signY);
-                doc.text("Parent's Signature", 20, signY + 5);
-                
-                doc.line(130, signY, 180, signY);
-                doc.text("Director's Signature", 135, signY + 5);
+            } catch (error) {
+                console.error('Error generating admission form:', error);
+                alert('Error generating admission form. Please try again.');
             }
-            
-            // Create institute copy
-            createCopy(10, 'INSTITUTE');
-            
-            // Add divider
-            doc.setDrawColor(0);
-            doc.setLineDashPattern([3, 3]);
-            doc.line(0, 140, 210, 140);
-            doc.text('✂ Cut Here', 90, 138);
-            
-            // Create parent copy
-            createCopy(150, 'PARENT');
-            
-            // Save the PDF
-            doc.save(`PCC_Admission_${regNo}.pdf`);
-
-            // Update Excel sheet
-            await updateExcel({
-                regNo,
-                firstName,
-                lastName,
-                className,
-                totalFees,
-                feesPaid,
-                remainingFees,
-                date: currentDate
-            });
-            
-            // Open WhatsApp group invite link
-            const whatsappNumber = document.getElementById('whatsapp').value;
-            const whatsappGroupLink = 'https://chat.whatsapp.com/KqLcgmzIClZFYVyzsmNCNZ';
-            
-            // Open WhatsApp in new tab
-            window.open(`https://wa.me/${whatsappNumber}?text=Welcome to PCC! Please join our updates group using this link: ${whatsappGroupLink}`, '_blank');
-            
-            alert('Registration successful! Your admission form has been downloaded.');
         });
     </script>
 </body>
