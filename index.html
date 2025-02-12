@@ -188,12 +188,60 @@
             display: flex;
             justify-content: center;
             margin-top: 15px;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
         }
 
         .upi-image {
             width: 180px;
             height: auto;
             margin: 0 10px;
+        }
+
+        .upi-pay-button {
+            background: #1565C0;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upi-pay-button:hover {
+            background: #0D47A1;
+        }
+
+        #signature-pad {
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .signature-container {
+            grid-column: span 2;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .signature-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .signature-buttons button {
+            padding: 8px 15px;
+            background: #1565C0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
         @media (max-width: 768px) {
@@ -203,7 +251,7 @@
             }
             
             .gender-details, .concession-details, .payment-details,
-            .button, #camera-container {
+            .button, #camera-container, .signature-container {
                 grid-column: span 1;
             }
             
@@ -239,6 +287,11 @@
 
             .upi-image {
                 width: 150px;
+            }
+
+            #signature-pad {
+                width: 100%;
+                max-width: 300px;
             }
         }
 
@@ -326,6 +379,15 @@
                     <button type="button" id="capture-photo" style="display: none;">Capture</button>
                     <img id="captured-photo" alt="Captured photo">
                 </div>
+
+                <div class="signature-container">
+                    <h3>Parent's Signature</h3>
+                    <canvas id="signature-pad" width="400" height="200"></canvas>
+                    <div class="signature-buttons">
+                        <button type="button" id="clear-signature">Clear</button>
+                        <button type="button" id="save-signature">Save</button>
+                    </div>
+                </div>
                 
                 <div class="gender-details">
                     <span class="gender-title">Gender</span>
@@ -363,6 +425,18 @@
                     </div>
                     <div class="upi-container" id="upi-section" style="display: none;">
                         <img src="upi.jpg" alt="UPI QR Code" class="upi-image">
+                        <div class="input-box">
+                            <i class="fas fa-rupee-sign"></i>
+                            <input type="number" id="upiAmount" placeholder="Enter UPI Payment Amount">
+                        </div>
+                        <div class="input-box">
+                            <i class="fas fa-id-card"></i>
+                            <input type="text" id="parentUpiId" placeholder="Enter Parent's UPI ID">
+                        </div>
+                        <a href="#" class="upi-pay-button" id="upiPayButton">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Pay with UPI
+                        </a>
                     </div>
                 </div>
                 
@@ -375,6 +449,37 @@
 
     <script>
         window.jsPDF = window.jspdf.jsPDF;
+
+        // Initialize signature pad
+        const canvas = document.getElementById('signature-pad');
+        const signaturePad = new SignaturePad(canvas, {
+            backgroundColor: 'rgb(255, 255, 255)'
+        });
+
+        document.getElementById('clear-signature').addEventListener('click', () => {
+            signaturePad.clear();
+        });
+
+        document.getElementById('upiPayButton').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const amount = document.getElementById('upiAmount').value;
+            const parentUpiId = document.getElementById('parentUpiId').value;
+            
+            if (!amount || !parentUpiId) {
+                alert('Please enter both amount and UPI ID');
+                return;
+            }
+
+            const tutorUpiId = 'niranjanpadashetty17@ybl';
+            const studentName = document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
+            
+            // Create UPI payment URL
+            const upiUrl = `upi://pay?pa=${tutorUpiId}&pn=PCC_Tuition&am=${amount}&tn=Fees_for_${studentName}&cu=INR`;
+            
+            // Open UPI URL in new window/tab
+            window.location.href = upiUrl;
+        });
 
         // Camera functionality
         const startCamera = document.getElementById('start-camera');
@@ -468,7 +573,7 @@
                     // Header with border
                     doc.setDrawColor(0);
                     doc.setLineWidth(0.5);
-                    doc.rect(10, startY, 190, 130); // Increased height by 10
+                    doc.rect(10, startY, 190, 130);
 
                     // Institute logo and name
                     doc.setFontSize(16);
@@ -486,8 +591,8 @@
 
                     // Photo box with border
                     if (capturedPhoto.src) {
-                        doc.rect(155, startY + 35, 35, 45); // Photo border
-                        doc.addImage(capturedPhoto.src, 'JPEG', 156, startY + 36, 33, 43); // Passport size photo
+                        doc.rect(155, startY + 35, 35, 45);
+                        doc.addImage(capturedPhoto.src, 'JPEG', 156, startY + 36, 33, 43);
                     }
 
                     // Student details in organized grid
@@ -529,7 +634,7 @@
 
                     // Fee details (only for institute copy)
                     if (title === 'INSTITUTE') {
-                        const feeY = detailsStartY + 55; // Moved up by 5
+                        const feeY = detailsStartY + 55;
                         doc.setFillColor(240, 240, 240);
                         doc.rect(15, feeY, 180, 15, 'F');
                         
@@ -541,8 +646,18 @@
                         doc.text(`Balance: ₹${remainingFees}`, 140, feeY + 12);
                     }
 
-                    // Signature section - moved down
-                    const signY = startY + 120; // Moved down by 10
+                    // Signature section
+                    const signY = startY + 120;
+                    
+                    // Add parent's signature from canvas
+                    if (!signaturePad.isEmpty()) {
+                        const signatureData = signaturePad.toDataURL();
+                        doc.addImage(signatureData, 'PNG', 20, signY - 20, 40, 20);
+                    }
+                    
+                    // Add pre-signed director's signature
+                    doc.addImage('sign.jpg', 'JPEG', 140, signY - 20, 40, 20);
+                    
                     doc.line(20, signY, 60, signY);
                     doc.line(140, signY, 180, signY);
                     doc.setFontSize(8);
@@ -552,10 +667,10 @@
 
                 // Create both copies
                 createCopy(10, 'INSTITUTE');
-                doc.line(10, 150, 200, 150); // Adjusted line position
+                doc.line(10, 150, 200, 150);
                 doc.setFontSize(8);
                 doc.text('✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -', 105, 155, {align: 'center'});
-                createCopy(160, 'PARENT'); // Adjusted starting position
+                createCopy(160, 'PARENT');
 
                 // Save PDF with student name
                 doc.save(`${firstName}_${lastName}_Admission.pdf`);
